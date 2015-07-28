@@ -1,0 +1,8 @@
+function k = triangle_kernel(x, y, h)
+z = 1-1/h*pdist2(x,y);
+if z>0
+    k = z;
+else
+    k = 0;
+end
+end 
