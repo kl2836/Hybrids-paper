@@ -1,0 +1,82 @@
+%function = drivercode(data)
+load sarcos_inv
+load sarcos_inv_test %not using inv_test for now
+
+split_ratio = 0.5; %split percent
+total_rmse = []; %vector for rmse
+num_train = []; %vector for number of training points
+std_err = []; %vector for errors run-time
+err_vec = [];  %vector of errors for plokt
+%std_int = []
+time = []; %vector for time 
+now_time = [];
+while split_ratio < 1
+    curr_sum = 0;
+    std_err = [];
+    now_time = [];
+    split_cut = ceil(size(sarcos_inv,1)*split_ratio); %amount we are splitting
+    
+    num = 50;
+    rmse = 0;
+    for i = 1:num
+        
+        rand_idx = randperm(size(sarcos_inv, 1));
+        xtrain = sarcos_inv(rand_idx(1:split_cut), 1:21);
+        xtest = sarcos_inv(rand_idx(split_cut+1:end), 1:21);
+        %xtrain = sarcos_inv(1:split_cut, 1:21);
+        %xtest = sarcos_inv(split_cut+1:end, 1:21);
+        y = 0; %amount we are testing, from 0 to 6
+        ytrain = sarcos_inv(1:split_cut, 22:22+y); 
+        ytest = sarcos_inv(split_cut+1:end, 22+y);
+        [b, interval] = regress(ytrain, xtrain); %get weights
+        %interval = interval(:,2)-interval(:,1);
+        tic;
+        results = xtest*b; %linear regression results for y
+        tock = toc;
+        now_time = [now_time tock];
+        error = results - ytest; %error
+        mse = sqrt(error.*error/split_cut);
+        rmse = sqrt(mse);
+        
+        std_err = [std_err sum(rmse)];
+        curr_sum = curr_sum + sum(rmse);
+    
+    end 
+    
+    curr_sum = curr_sum/num;
+    err = std(std_err);
+    total_rmse = [total_rmse; curr_sum]; %sum of all rmse's
+    num_train = [num_train; split_cut];
+    err_vec = [err_vec err];
+    %std_int = [std_int; interval]
+    split_ratio = split_ratio+0.05;
+    time = [time; mean(now_time)];
+    
+    
+end
+
+
+%std_int =  std_int*ones(size(num_train));
+%errorbar(num_train, total_rmse, std_int, '-x')
+figure(1)
+hold on
+title('Robotic Torque Dataset')
+xlabel('Number of training points') % x-axis label
+ylabel('Root MSE') % y-axis label
+%scatter(num_train, total_rmse)
+%line(num_train, total_rmse)
+errorbar(num_train,total_rmse,err_vec)
+
+hold on
+figure(2)
+scatter(num_train, time)
+line(num_train, time)
+title('Robotic Torque Dataset')
+xlabel('Number of training points') % x-axis label
+ylabel('Evaluation time') % y-axis label
+hold off
+
+%end 
+
+%watch teapot rotate
+%for i=1:100; image(reshape(teapots(:,i),76,101,3)/255); pause(0.01); end; 
