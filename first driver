@@ -1,0 +1,60 @@
+load sarcos_inv
+load sarcos_inv_test %not using inv_test for now
+
+split_ratio = 0.5; %split percent
+total_rmse = []; %vector for rmse
+num_train = []; %vector for number of training points
+%std_int = []
+time = []; %vector for time 
+while split_ratio < 1
+    split_cut = size(sarcos_inv,1)*split_ratio; %amount we are splitting
+    xtrain = sarcos_inv(1:split_cut, 1:21);
+    xtest = sarcos_inv(split_cut+1:end, 1:21);
+    y = 0; %amount we are testing, from 0 to 6
+    ytrain = sarcos_inv(1:split_cut, 22:22+y); 
+    ytest = sarcos_inv(split_cut+1:end, 22+y);
+    
+    [b, interval] = regress(ytrain, xtrain); %get weights
+    %interval = interval(:,2)-interval(:,1);
+    tic
+    results = xtest*b; %linera regression results for y
+    error = results - ytest; %error
+    mse = sqrt(error.*error/split_cut);
+    rmse = sqrt(mse);
+    total_rmse = [total_rmse; sum(rmse)]; %sum of all rmse's
+    num_train = [num_train; split_cut]; 
+    %std_int = [std_int; interval]
+    split_ratio = split_ratio+0.05;
+    toc
+    time = [time; toc]
+end
+
+
+%std_int =  std_int*ones(size(num_train));
+%errorbar(num_train, total_rmse, std_int, '-x')
+figure(1)
+hold on
+title('Robotic Torque Dataset')
+xlabel('Number of training points') % x-axis label
+ylabel('Root MSE') % y-axis label
+scatter(num_train, total_rmse)
+line(num_train, total_rmse)
+%e = std(total_rmse)*ones(size(num_train));
+%errorbar(num_train, total_rmse, e)
+
+hold on
+figure(2)
+scatter(num_train, time)
+line(num_train, time)
+title('Robotic Torque Dataset')
+xlabel('Number of training points') % x-axis label
+ylabel('Evaluation time') % y-axis label
+hold off
+
+
+
+
+
+
+%watch teapot rotate
+%for i=1:100; image(reshape(teapots(:,i),76,101,3)/255); pause(0.01); end; 
