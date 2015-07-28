@@ -1,0 +1,68 @@
+function rnet = rnets_init(X,Y, c, alpha)
+dst = pdist(X);
+X_diam = max(dst(:));
+mean_Y = mean(Y,1);
+n = size(X,1);
+
+assert(c>1);
+assert(alpha<1);
+assert(alpha>0);
+
+i = 0:20;
+r = X_diam ./ c.^i;
+
+
+[Qall, Qdst] = ff_traversal(X);
+
+
+rnet = [];
+rnet.r = r;
+rnet.n = n;
+rnet.alpha = alpha;
+rnet.meanY = mean_Y;
+
+rnet.nets = cell(length(r),1);  % will be used for the query  -->  argmin_q' || x - q' ||
+rnet.Qall = Qall;
+rnet.Qdst = Qdst;
+
+%rnet.Qq = cell(length(r),1);  % precomputing   (Q_r  intersect  B(q,4r/alpha) )
+
+rnet.avgData = cell(length(r),1);
+%rnet.Q_r = cell(length(r),1);
+
+for ridx=1:length(r)
+    fprintf('%d / %d \n', ridx,length(r));
+    curr_r = r(ridx);
+    
+    tt = sum(Qdst>=curr_r)+1;
+    Q_r = Qall(1:tt,:);
+ %   rnet.Q_r{ridx} = Q_r;
+    rnet.nets{ridx} = createns(Q_r,'nsmethod','kdtree');
+    
+    ndx_q_allX = knnsearch(Q_r, X);  % find the index of the nearest q for each x
+    
+    %meanYq_collect = nan(size(Q_r,1),size(Y,2));
+    %Nrq_collect = nan(size(Q_r,1),1);
+    
+    rnet.avgData{ridx} = cell(size(Q_r,1),1);
+    
+    for qidx = 1:size(Q_r,1)
+        q = Q_r(qidx,:);
+        qdst = pdist2(Q_r,q);
+        qclosendx = find(qdst <= 4*curr_r/alpha);
+        rnet.avgData{ridx}{qidx}.Yq = nan(length(qclosendx),size(Y,2));
+        rnet.avgData{ridx}{qidx}.Nq = nan(length(qclosendx),1);
+        rnet.avgData{ridx}{qidx}.q = nan(length(qclosendx), size(X,2));
+        
+        for qq = 1:length(qclosendx)
+            rnet.avgData{ridx}{qidx}.q(qq,:) = Q_r(qclosendx(qq),:);
+            rnet.avgData{ridx}{qidx}.Nq(qq) = sum(ndx_q_allX == qclosendx(qq));
+            rnet.avgData{ridx}{qidx}.Yq(qq,:) = mean(Y(ndx_q_allX == qclosendx(qq),:),1);
+        end
+    end
+    
+    
+    
+end
+
+end
