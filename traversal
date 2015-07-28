@@ -1,0 +1,35 @@
+function [X_ordered, X_dist, X_ndx ] = ff_traversal(X)
+
+pts = size(X,1);
+
+idxs = ones(pts,1)==1;
+X_ndx = nan(pts,1);
+X_dist = nan(pts,1);
+X_ordered = nan(size(X));
+
+if pts==0; return; end;
+
+
+x_inf = inf(1,size(X,2));
+
+c=0;
+while sum(idxs)>0
+    c=c+1;
+    to_X = X(idxs,:);
+    fr_X = [X(~idxs,:); x_inf];
+    dst = pdist2(to_X, fr_X); % X, X(X_ndx,:)x_pick );
+    [mx_dist, ndx_pick] = max(min(dst,[],2));
+    
+    x_pick = to_X(ndx_pick,:);
+    X_ordered(c,:) = x_pick;
+    
+    nd = find(idxs);
+    X_ndx(c) = nd(ndx_pick);
+    if c>1
+        X_dist(c-1) = mx_dist;
+    end
+    idxs( X_ndx(c))=false;
+end
+X_dist(end) = 0;
+
+
